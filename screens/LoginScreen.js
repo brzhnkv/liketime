@@ -9,7 +9,7 @@ const LoginScreen = ({ navigation, stompClient }) => {
     login(username, password);
     navigation.navigate("Home");
   };
-
+  //s
   const login = (username, password) => {
     const data = { username: username, password: password };
     //stompClient.send("/app/auth/login", {}, JSON.stringify(data));
