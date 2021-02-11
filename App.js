@@ -7,8 +7,9 @@ import HomeScreen from "./screens/HomeScreen";
 import LoginScreen from "./screens/LoginScreen";
 import HeaderButton from "./components/HeaderButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AppLoading } from "expo";
-import { Client } from "@stomp/stompjs";
+import AppLoading from "expo-app-loading";
+import { RxStomp } from "@stomp/rx-stomp";
+import { throttleTime, map, scan } from "rxjs/operators";
 import * as encoding from "text-encoding";
 
 const Stack = createStackNavigator();
@@ -20,6 +21,10 @@ export default function App() {
   const [loggedInUsername, setLoggedInUsername] = useState("");
   const [userProfilePic, setUserProfilePic] = useState("");
   const [token, setToken] = useState("");
+
+  const [logFromServer, setLogFromServer] = useState("");
+
+  const [statusMessage, setStatusMessage] = useState("");
 
   const getLoggedInUser = async () => {
     try {
@@ -112,9 +117,8 @@ export default function App() {
     getLoggedInUser("logged_in_user");
   };
 
-  // START StompClient //
   const [isConnected, setIsConnected] = useState(false);
-  //let stompClient;
+  const [stompClient, setStompClient] = useState(new RxStomp());
 
   let subscriptionAuth;
   let subscriptionStatus;
@@ -130,74 +134,54 @@ export default function App() {
       console.log("STOMP: " + str);
     },
     reconnectDelay: 10000,
-    onConnect: async function (frame) {
-      // The return object has a method called `unsubscribe`
-      subscriptionAuth = stompClient.subscribe(
-        "/user/notification/auth",
-        function (message) {
-          const payload = JSON.parse(message.body);
-
-          //setToken(payload.data.token);
-          ///setStatusMessage("authentication ok");
-          //subscriptionAuth.unsubscribe()
-        }
-      );
-      subscriptionLogin = stompClient.subscribe(
-        "/user/notification/login",
-        function (message) {
-          const payload = JSON.parse(message.body);
-
-          if (payload.data.token !== null) {
-            const username = payload.data.username;
-            const token = payload.data.token;
-            const profilePic = payload.data.userProfilePic;
-
-            const data = { token, profilePic };
-            storeLoggedInUser(username);
-            storeData(username, data);
-
-            ///  setStatusMessage("token received");
-            subscriptionLogin.unsubscribe();
-          }
-        }
-      );
-      subscriptionStatus = stompClient.subscribe(
-        "/user/notification/status",
-        function (message) {
-          const payload = JSON.parse(message.body);
-          ///  setStatusMessage(payload.status);
-        }
-      );
-      subscriptionLog = stompClient.subscribe(
-        "/user/notification/log",
-        function (message) {
-          const payload = JSON.parse(message.body);
-          ///  setLogFromServer(payload.status);
-          /* 
-  
-            let id = listDataLog.listLog.length;
-            const newList = listDataLog.listLog.concat({
-              id: id,
-              message: payload.log,
-            });
-  
-            setListDataLog({ ...listDataLog, listLog: newList }); */
-        }
-      );
-      setIsConnected(true);
-      /// setLog2("OK");
-      //loadUserFromCookies()
-    },
-    onDisconnect: () => {
-      setIsConnected(false);
-      ///  setLog2("not connected");
-      // stompClient.close();
-    },
   };
-  const stompClient = new Client(stompConfig);
-  //stompClient.activate();
+
   useEffect(() => {
+    stompClient.configure(stompConfig);
     stompClient.activate();
+
+    subscriptionLogin = stompClient
+      .watch("/user/notification/login")
+      .subscribe(function (message) {
+        const payload = JSON.parse(message.body);
+        console.log(payload);
+        if (payload.data.token !== null) {
+          const username = payload.data.username;
+          const token = payload.data.token;
+          const profilePic = payload.data.userProfilePic;
+
+          const data = { token, profilePic };
+          storeLoggedInUser(username);
+          storeData(username, data);
+
+          ///  setStatusMessage("token received");
+          //subscriptionLogin.unsubscribe();
+        }
+      });
+
+    subscriptionStatus = stompClient
+      .watch("/user/notification/status")
+      .subscribe(function (message) {
+        const payload = JSON.parse(message.body);
+        setStatusMessage(payload.status);
+      });
+
+    subscriptionLog = stompClient
+      .watch("/user/notification/log")
+      .subscribe(function (message) {
+        const payload = JSON.parse(message.body);
+        setLogFromServer(payload.status);
+        /* 
+
+          let id = listDataLog.listLog.length;
+          const newList = listDataLog.listLog.concat({
+            id: id,
+            message: payload.log,
+          });
+
+          setListDataLog({ ...listDataLog, listLog: newList }); */
+      });
+    setIsConnected(true);
   }, []);
 
   // END StompClient //
@@ -214,7 +198,11 @@ export default function App() {
 
   if (!appLoaded) {
     return (
-      <AppLoading startAsync={loadApp} onFinish={() => setAppLoaded(true)} />
+      <AppLoading
+        startAsync={loadApp}
+        onFinish={() => setAppLoaded(true)}
+        onError={() => {}}
+      />
     );
   }
 
@@ -241,6 +229,7 @@ export default function App() {
               userProfilePic={userProfilePic}
               token={token}
               isConnected={isConnected}
+              stompClient={stompClient}
             />
           )}
         </Stack.Screen>

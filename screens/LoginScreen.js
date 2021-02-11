@@ -9,15 +9,13 @@ const LoginScreen = ({ navigation, stompClient }) => {
     login(username, password);
     navigation.navigate("Home");
   };
-  //s
-  const login = (username, password) => {
+
+  const login = async (username, password) => {
     const data = { username: username, password: password };
-    //stompClient.send("/app/auth/login", {}, JSON.stringify(data));
-    if (stompClient !== null)
+    if (stompClient.connected)
       stompClient.publish({
         destination: "/app/auth/login",
         body: JSON.stringify(data),
-        skipContentLengthHeader: true,
       });
     else alert("stomp not ready");
     if (stompClient) console.log("works");

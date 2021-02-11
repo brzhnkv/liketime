@@ -11,7 +11,6 @@ import {
 import Tasks from "../components/Tasks";
 import { MaterialCommunityIcons, AntDesign } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Client, Message } from "@stomp/stompjs";
 import * as encoding from "text-encoding";
 
 const colors = {
@@ -28,29 +27,16 @@ const Homepage2 = ({
   loggedInUsername,
   isLoggedIn,
   isConnected,
+  stompClient,
+  logFromServer,
+  statusMessage,
 }) => {
   const [cookie, setCookie] = useState("");
-
-  const [logFromServer, setLogFromServer] = useState("");
 
   const [log, setLog] = useState("log");
   const [log2, setLog2] = useState("not connected");
 
   const [loading, setLoading] = useState(true);
-
-  const [statusMessage, setStatusMessage] = useState("");
-  const [listDataLog, setListDataLog] = useState({
-    listLog: [{ id: 0, message: "Соединение с сервером установлено." }],
-    isShowList: true,
-  });
-
-  const [conn, setConn] = useState(false);
-
-  let stompClient;
-
-  /*   const handleTest = () => {
-      client.send("/app/test");
-    }; */
 
   useEffect(() => {
     // getAllKeys();
@@ -123,194 +109,6 @@ const Homepage2 = ({
     console.log("Done.");
   };
 
-  let subscriptionAuth;
-  let subscriptionStatus;
-  let subscriptionLog;
-  let subscriptionLogin;
-  const stompConfig = {
-    brokerURL: "wss://instanext-server.herokuapp.com/ws",
-    //brokerURL: "ws://192.168.100.13:5000/ws",
-    appendMissingNULLonIncoming: true,
-    forceBinaryWSFrames: true,
-    //heartbeatIncoming: 4000,
-    // heartbeatOutgoing: 4000,
-    connectHeaders: {
-      username: loggedInUsername,
-      token: token,
-    },
-    debug: function (str) {
-      console.log("STOMP: " + str);
-    },
-    reconnectDelay: 10000,
-    onConnect: async function (frame) {
-      // The return object has a method called `unsubscribe`
-      subscriptionAuth = stompClient.subscribe(
-        "/user/notification/auth",
-        function (message) {
-          const payload = JSON.parse(message.body);
-
-          //setToken(payload.data.token);
-          setStatusMessage("authentication ok");
-          //subscriptionAuth.unsubscribe()
-        }
-      );
-      subscriptionLogin = stompClient.subscribe(
-        "/user/notification/login",
-        function (message) {
-          const payload = JSON.parse(message.body);
-
-          if (payload.data.token !== null) {
-            const username = payload.data.username;
-            const token = payload.data.token;
-            const profilePic = payload.data.userProfilePic;
-
-            const data = { token, profilePic };
-            storeLoggedInUser(username);
-            storeData(username, data);
-
-            setStatusMessage("token received");
-            subscriptionLogin.unsubscribe();
-          }
-        }
-      );
-      subscriptionStatus = stompClient.subscribe(
-        "/user/notification/status",
-        function (message) {
-          const payload = JSON.parse(message.body);
-          setStatusMessage(payload.status);
-        }
-      );
-      subscriptionLog = stompClient.subscribe(
-        "/user/notification/log",
-        function (message) {
-          const payload = JSON.parse(message.body);
-          setLogFromServer(payload.status);
-          /* 
-  
-            let id = listDataLog.listLog.length;
-            const newList = listDataLog.listLog.concat({
-              id: id,
-              message: payload.log,
-            });
-  
-            setListDataLog({ ...listDataLog, listLog: newList }); */
-        }
-      );
-
-      setLog2("OK");
-      setConn(true);
-      //loadUserFromCookies()
-    },
-    onDisconnect: () => {
-      setLog2("not connected");
-      // stompClient.close();
-    },
-  };
-  stompClient = new Client(stompConfig);
-  //stompClient.activate();
-  useEffect(() => {
-    //stompClient.activate();
-  }, []);
-
-  /* 
-    var ws = new WebSocket('ws://localhost:5000/ws');
-  
-    ws.onopen = () => {
-      // connection opened
-      ws.send('/'); // send a message
-      setLog("connected")
-    };
-    
-    ws.onmessage = e => {
-      // a message was received
-      setLog(e.data);
-    };
-    
-    ws.onerror = e => {
-      // an error occurred
-      setLog(e.message);
-    };
-    
-    ws.onclose = e => {
-      // connection closed
-      setLog(e.code, e.reason);
-      
-    };
-   */
-
-  /*  let stompClient
-    let subscriptionAuth
-    let subscriptionStatus
-    let subscriptionLog
-    const stompConfig = {
-        brokerURL: "wss://liketimeserver.xyz/ws",
-        //brokerURL: "ws://localhost:5000/ws",
-        appendMissingNULLonIncoming: true,
-        forceBinaryWSFrames: true,
-        debug: function (str) {
-            setLog('STOMP: ' + str);
-        },
-        reconnectDelay: 5000,
-        onConnect: async function (frame) {
-            // The return object has a method called `unsubscribe`
-            subscriptionAuth = stompClient.subscribe('/user/notification/auth', function (message) {
-                const payload = JSON.parse(message.body);
-                setLog(payload)
-                setUsername(payload.data.username)
-                setUserProfilePic(payload.data.userProfilePic)
-                //subscriptionAuth.unsubscribe()
-            });
-            subscriptionStatus = stompClient.subscribe('/user/notification/status', function (message) {
-                const payload = JSON.parse(message.body);
-                setLog(payload)
-  
-                setStatusMessage(payload.data.status)
-            });
-            subscriptionLog = stompClient.subscribe('/user/notification/log', function (message) {
-                const payload = JSON.parse(message.body);
-                setLog(payload.data.log)
-  
-                let id = listDataLog.listLog.length
-                const newList = listDataLog.listLog.concat({
-                    id: id,
-                    message: payload.data.log,
-                });
-  
-                setListDataLog({...listDataLog, listLog: newList});
-            });
-            setIsConnected(true)
-            //loadUserFromCookies()
-        }
-    };
-    stompClient = new Client(stompConfig);
-    stompClient.activate();
-  
-    function loadUserFromCookies() {
-      stompClient.publish({
-          destination: '/app/auth/session',
-          body: '',
-          skipContentLengthHeader: true,
-      });
-  }
-  
-  
-  const login = async (username, password) => {
-      const loginData = { username, password }
-      const loginDataJSON = JSON.stringify(loginData)
-      stompClient.publish({
-          destination: '/app/auth/login',
-          body: loginDataJSON,
-          skipContentLengthHeader: true,
-      });
-      /*if (clientRef) {
-          await clientRef.current.sendMessage("/app/auth/login", loginDataJSON) }*/
-  /*  await loadUserFromCookies()
-  
-  }
-  
-  const logout = async () => {
-      if (clientRef) await clientRef.current.sendMessage("/app/auth/logout")
-  } */
   const [tag1, setTag1] = useState("");
   const [tag2, setTag2] = useState("");
   const [response, setResponse] = useState("");
