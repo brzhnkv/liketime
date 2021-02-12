@@ -111,11 +111,43 @@ const Homepage2 = ({
 
   const [tag1, setTag1] = useState("");
   const [tag2, setTag2] = useState("");
+  const [tag3, setTag3] = useState("");
   const [response, setResponse] = useState("");
-  const likeAndSave = () => {
+
+  const likeByTag = () => {
     if (tag1 !== "") {
+      const data = { username: loggedInUsername, token: token, tag: tag1 };
+      if (stompClient.connected)
+        stompClient.publish({
+          destination: "/app/like",
+          body: JSON.stringify(data),
+        });
+      else alert("stomp not ready");
+    } else alert("Тег не может быть пустым!");
+  };
+  const saveByTag = () => {
+    if (tag2 !== "") {
+      const data = { username: loggedInUsername, token: token, tag: tag2 };
+      if (stompClient.connected)
+        stompClient.publish({
+          destination: "/app/save",
+          body: JSON.stringify(data),
+        });
+      else alert("stomp not ready");
+    } else alert("Тег не может быть пустым!");
+  };
+
+  const likeAndSave = () => {
+    if (tag3 !== "") {
       //client.send("/app/likeandsave", {}, tag1);
-      stompClient.publish({ destination: "/app/likeandsave", body: tag1 });
+      const data = { username: loggedInUsername, token: token, tag: tag3 };
+      if (stompClient.connected)
+        stompClient.publish({
+          destination: "/app/likeandsave",
+          body: JSON.stringify(data),
+        });
+      else alert("stomp not ready");
+      // stompClient.publish({ destination: "/app/likeandsave", body: tag1 });
       //setIsInProgress(true)
     } else alert("Тег не может быть пустым!");
   };
@@ -149,7 +181,10 @@ const Homepage2 = ({
       <View style={styles.container}>
         <Text>StompJS connected: {JSON.stringify(isConnected)}</Text>
 
-        <Button title="Delete cookie" onPress={deleteCookie} />
+        <Button
+          title="LOGOUT FROM ALL (deletes all cookies)"
+          onPress={deleteCookie}
+        />
         <Text>isLoggedIn: {JSON.stringify(isLoggedIn)}</Text>
         <Text>loggedInUsername: {loggedInUsername}</Text>
         <Text>token: {token}</Text>
@@ -159,31 +194,15 @@ const Homepage2 = ({
         />
 
         {/* {isLoggedIn && conn && <Tasks stompClient={stompClient} />} */}
-        {stompClient.connected && <Tasks stompClient={stompClient} />}
-        <View>
-          <Text accessibilityRole="header">Лайк + сохранение</Text>
-          <TextInput
-            style={styles.textInput}
-            textAlign="center"
-            value={tag1}
-            placeholder="Тег"
-            onChangeText={(text) => setTag1(text)}
+        {stompClient.connected && (
+          <Tasks
+            stompClient={stompClient}
+            loggedInUsername={loggedInUsername}
+            token={token}
+            logFromServer={logFromServer}
+            statusMessage={statusMessage}
           />
-          <Button title="Старт" onPress={likeAndSave} />
-          <Text accessibilityRole="header">Самолет</Text>
-          <TextInput
-            style={styles.textInput}
-            textAlign="center"
-            value={tag2}
-            placeholder="Тег"
-            onChangeText={(text) => setTag2(text)}
-          />
-          <Button title="Старт" onPress={sendMediaToGroup} />
-          <Button title="Test" />
-          <Text>Response: {response}</Text>
-        </View>
-        <Text>Log from server: {logFromServer}</Text>
-        <Text>Status: {statusMessage}</Text>
+        )}
       </View>
     </View>
   );

@@ -135,7 +135,7 @@ export default function App() {
     },
     reconnectDelay: 10000,
   };
-  //d
+  // d
   useEffect(() => {
     stompClient.configure(stompConfig);
     stompClient.activate();
@@ -230,6 +230,8 @@ export default function App() {
               token={token}
               isConnected={isConnected}
               stompClient={stompClient}
+              logFromServer={logFromServer}
+              statusMessage={statusMessage}
             />
           )}
         </Stack.Screen>

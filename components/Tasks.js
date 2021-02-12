@@ -1,82 +1,122 @@
 import React, { useState } from "react";
 import { StyleSheet, TextInput, Text, View, Button } from "react-native";
 
-export default function Tasks({ stompClient }) {
-  const [tag1, setTag1] = useState("");
-  const [tag2, setTag2] = useState("");
+export default function Tasks({
+  stompClient,
+  loggedInUsername,
+  token,
+  logFromServer,
+  statusMessage,
+}) {
+  const [tagLike, setTagLike] = useState("");
+  const [tagSave, setTagSave] = useState("");
+  const [tagLikeAndSave, setTagLikeAndSave] = useState("");
+  const [tagPlanes, setTagPlanes] = useState("");
   const [response, setResponse] = useState("");
 
-  const login = async (username, password) => {
-    try {
-      var body = JSON.stringify({ username, password });
-
-      const response = await fetch("http://192.168.100.50:5000/test", {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username: username,
-          password: password,
-        }),
-      });
-      console.log(await response.text());
-      /* if (response.hasOwnProperty("accessToken")) {
-        console.log("login successfull");
-        console.log(response);
-      } else if (response.hasOwnProperty("error")) {
-        console.log("login failed");
-        console.log(response);
-      } */
-    } catch (e) {
-      console.log("error: " + e);
-    }
+  const handleTest = () => {
+    stompClient.publish({ destination: "/app/test", body: "" });
   };
 
-  const handleTest = () => {
-    //client.send("/app/test");
-    stompClient.publish({ destination: "/app/test", body: "" });
-    //login("usersdfsaf", "121329");
+  const likeByTag = () => {
+    if (tagLike !== "") {
+      const data = { username: loggedInUsername, token: token, tag: tagLike };
+      if (stompClient.connected)
+        stompClient.publish({
+          destination: "/app/like",
+          body: JSON.stringify(data),
+        });
+      else alert("stomp not ready");
+    } else alert("Тег не может быть пустым!");
+  };
+  const saveByTag = () => {
+    if (tagSave !== "") {
+      const data = { username: loggedInUsername, token: token, tag: tagSave };
+      if (stompClient.connected)
+        stompClient.publish({
+          destination: "/app/save",
+          body: JSON.stringify(data),
+        });
+      else alert("stomp not ready");
+    } else alert("Тег не может быть пустым!");
   };
 
   const likeAndSave = () => {
-    if (tag1 !== "") {
+    if (tagLikeAndSave !== "") {
       //client.send("/app/likeandsave", {}, tag1);
-      stompClient.publish({ destination: "/app/likeandsave", body: tag1 });
+      const data = {
+        username: loggedInUsername,
+        token: token,
+        tag: tagLikeAndSave,
+      };
+      if (stompClient.connected)
+        stompClient.publish({
+          destination: "/app/likeandsave",
+          body: JSON.stringify(data),
+        });
+      else alert("stomp not ready");
+      // stompClient.publish({ destination: "/app/likeandsave", body: tag1 });
       //setIsInProgress(true)
     } else alert("Тег не может быть пустым!");
   };
   const sendMediaToGroup = () => {
-    if (tag2 !== "") {
-      //client.send("/app/sendmediatogroup", {}, tag2);
-      stompClient.publish({ destination: "/app/sendmediatogroup", body: tag2 });
-      //setIsInProgress(true);
+    if (tagPlanes !== "") {
+      const data = { username: loggedInUsername, token: token, tag: tagPlanes };
+      if (stompClient.connected)
+        stompClient.publish({
+          destination: "/app/sendmediatogroup",
+          body: JSON.stringify(data),
+        });
+      else alert("stomp not ready");
     } else alert("Тег не может быть пустым!");
   };
 
   return (
     <View>
+      <Text accessibilityRole="header">Лайк</Text>
+      <TextInput
+        style={styles.textInput}
+        textAlign="center"
+        value={tagLike}
+        placeholder="Тег"
+        onChangeText={(text) => setTagLike(text)}
+      />
+      <Button title="Старт" onPress={likeByTag} />
+
+      <Text accessibilityRole="header">Сохранение</Text>
+      <TextInput
+        style={styles.textInput}
+        textAlign="center"
+        value={tagSave}
+        placeholder="Тег"
+        onChangeText={(text) => setTagSave(text)}
+      />
+      <Button title="Старт" onPress={saveByTag} />
+
       <Text accessibilityRole="header">Лайк + сохранение</Text>
       <TextInput
         style={styles.textInput}
         textAlign="center"
-        value={tag1}
+        value={tagLikeAndSave}
         placeholder="Тег"
-        onChangeText={(text) => setTag1(text)}
+        onChangeText={(text) => setTagLikeAndSave(text)}
       />
       <Button title="Старт" onPress={likeAndSave} />
+
       <Text accessibilityRole="header">Самолет</Text>
       <TextInput
         style={styles.textInput}
         textAlign="center"
-        value={tag2}
+        value={tagPlanes}
         placeholder="Тег"
-        onChangeText={(text) => setTag2(text)}
+        onChangeText={(text) => setTagPlanes(text)}
       />
       <Button title="Старт" onPress={sendMediaToGroup} />
-      <Button title="Test" onPress={handleTest} />
-      <Text>Response: {response}</Text>
+
+      {/*  <Button title="Test" onPress={handleTest} />
+      <Text>Response: {response}</Text> */}
+      <Text>Log from server: {logFromServer}</Text>
+      <Text>Status: {statusMessage}</Text>
     </View>
   );
 }
