@@ -8,183 +8,204 @@ import LoginScreen from "./screens/LoginScreen";
 import HeaderButton from "./components/HeaderButton";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import AppLoading from "expo-app-loading";
-import { RxStomp } from "@stomp/rx-stomp";
+import { MenuProvider } from "react-native-popup-menu";
+
 import { throttleTime, map, scan } from "rxjs/operators";
 import * as encoding from "text-encoding";
+import { RxStomp, RxStompState } from "@stomp/rx-stomp";
+import { add, remove } from "./lib/ArrayOperators";
+import StompContext from "./contexts/StompContext";
+import DialogContext from "./contexts/DialogContext";
+import UsersContext from "./contexts/UsersContext";
 
 const Stack = createStackNavigator();
 
 export default function App() {
+  const [rxStomp, setRxStomp] = useState(new RxStomp());
+  const [isConnected, setIsConnected] = useState(false);
   const [appLoaded, setAppLoaded] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [initialRoute, setInitialRoute] = useState("");
-  const [loggedInUsername, setLoggedInUsername] = useState("");
+  const [currentUser, setLoggedInUsername] = useState("");
   const [userProfilePic, setUserProfilePic] = useState("");
   const [token, setToken] = useState("");
-
-  const [logFromServer, setLogFromServer] = useState("");
-
-  const [statusMessage, setStatusMessage] = useState("");
+  const [users, setUsers] = useState([]);
+  const [visible, setVisible] = useState(false);
 
   const getLoggedInUser = async () => {
+    // getCurrentUser
     try {
-      const username = await AsyncStorage.getItem("@logged_in_user");
+      const username = await AsyncStorage.getItem("@logged_in_user"); // @current_user
       if (username == null) {
         setInitialRoute("Login");
       } else {
         setIsLoggedIn(true);
-        getLoggedInUserData(username);
+        setCurrentUserData(username);
+        // setUsers((users) => ({ username }, { ...users }));
+        let obj = { username: "kflkl", profilePic: "dffd" };
+        // setUsers(obj);
         setInitialRoute("Home");
       }
     } catch (e) {
-      alert("error");
+      alert("error getting logged in user");
     }
   };
 
-  const getLoggedInUserData = async (key) => {
+  const setCurrentUserData = async (username) => {
     try {
-      const jsonData = await AsyncStorage.getItem(key);
+      const jsonData = await AsyncStorage.getItem(username);
       const data = JSON.parse(jsonData);
-      setToken(data.token);
-      setLoggedInUsername(key);
-      setUserProfilePic(data.profilePic);
+      setToken(data.token); // setCurrentUserToken
+      setLoggedInUsername(username); // setCurrentUsername
+      setUserProfilePic(data.profilePic); // setCurrentUserProfilePicture
     } catch {}
   };
 
-  /*   useEffect(() => {
-    // getAllKeys();
-    getLoggedInUser();
-    return () => {};
-  }, []); */
-
-  /*   useEffect(() => {
-    if (isLoggedIn) {
-      console.log(JSON.stringify(isLoggedIn));
-      setInitialRoute("Home");
-    }
-  }, [isLoggedIn]); */
-
-  // START debug //
-
-  const getAllKeys = async () => {
-    let keys = [];
+  const storeUser = async (username, userData) => {
     try {
-      keys = await AsyncStorage.getAllKeys();
-    } catch (e) {
-      // read key error
-    }
-    console.log(keys);
-  };
-
-  useEffect(() => {
-    getAllKeys();
-
-    return () => {};
-  }, []);
-
-  // END debug //
-  const getData = async (key) => {
-    try {
-      const value = await AsyncStorage.getItem(key);
-      if (value !== null) {
-        let data = JSON.parse(value);
-        console.log("data from getData: " + data);
-        setToken(data.token);
-        setUserProfilePic(data.userProfilePic);
-        console.log("token: " + token);
-        console.log("upp: " + userProfilePic);
-      }
-    } catch (e) {
-      // error reading value
-    }
-  };
-  const storeData = async (key, value) => {
-    try {
-      let data = JSON.stringify(value);
-      await AsyncStorage.setItem(key, data);
+      let data = JSON.stringify(userData);
+      await AsyncStorage.setItem(username, data);
     } catch (e) {
       // saving error
     }
-    getData(key);
-    console.log("key: " + key);
+    storeLoggedInUser(username);
   };
+  // storeCurrentUser
   const storeLoggedInUser = async (username) => {
     try {
       await AsyncStorage.setItem("@logged_in_user", username);
     } catch (e) {
       // error
     }
-    getLoggedInUser("logged_in_user");
+    await getLoggedInUser();
   };
-
-  const [isConnected, setIsConnected] = useState(false);
-  const [stompClient, setStompClient] = useState(new RxStomp());
-
-  let subscriptionAuth;
-  let subscriptionStatus;
-  let subscriptionLog;
-  let subscriptionLogin;
-
-  const stompConfig = {
-    brokerURL: "wss://instanext-server.herokuapp.com/ws",
-    //brokerURL: "ws://192.168.100.13:5000/ws",
-    appendMissingNULLonIncoming: true,
-    forceBinaryWSFrames: true,
-    debug: function (str) {
-      console.log("STOMP: " + str);
-    },
-    reconnectDelay: 10000,
+  const storeNewUser = async (username, userData) => {
+    try {
+      let data = JSON.stringify(userData);
+      await AsyncStorage.setItem(username, data);
+    } catch (e) {}
+    try {
+      await AsyncStorage.setItem("@logged_in_user", username);
+    } catch (e) {}
+    try {
+      d = await AsyncStorage.getItem("@logged_in_user");
+    } catch (e) {}
+    await setLoggedInUsername(d);
+    await setCurrentUserData(d);
   };
-  // d
-  useEffect(() => {
-    stompClient.configure(stompConfig);
-    stompClient.activate();
+  // START debug //
 
-    subscriptionLogin = stompClient
-      .watch("/user/notification/login")
-      .subscribe(function (message) {
-        const payload = JSON.parse(message.body);
-        console.log(payload);
-        if (payload.data.token !== null) {
-          const username = payload.data.username;
-          const token = payload.data.token;
-          const profilePic = payload.data.userProfilePic;
-
-          const data = { token, profilePic };
-          storeLoggedInUser(username);
-          storeData(username, data);
-
-          ///  setStatusMessage("token received");
-          //subscriptionLogin.unsubscribe();
+  const getAllUsersExceptCurrentUser = async () => {
+    let keys = [];
+    try {
+      keys = await AsyncStorage.getAllKeys();
+    } catch (e) {
+      // read key error
+    }
+    let currentUser;
+    console.log(keys);
+    const index = keys.indexOf("@logged_in_user");
+    if (index > -1) {
+      keys.splice(index, 1);
+    }
+    const index2 = keys.indexOf(currentUser);
+    console.log(index2);
+    if (index2 > -1) {
+      keys.splice(index2, 1);
+    }
+    let obj = [];
+    let profilePic;
+    await Promise.all(
+      keys.map(async (k, i) => {
+        try {
+          const jsonData = await AsyncStorage.getItem(k);
+          const data = JSON.parse(jsonData);
+          profilePic = data.profilePic;
+        } catch (e) {
+          console.log("failed loading profile picture");
         }
+        console.log("prof pic: ", profilePic);
+        console.log("key " + i + ": " + k);
+        obj.push({ username: k, profilePic: profilePic });
+      })
+    );
+    obj.map((i) => {
+      console.log(i.username, i.profilePic);
+    });
+    //setUsers((state) => [...state, ...obj]);
+
+    //setUsers((state) => [obj2, ...state]);
+  };
+
+  /* useEffect(() => {
+    setUsers([{ username: "uusd" }]);
+  }, []); */
+
+  const getUsers = async () => {
+    try {
+      const users = JSON.parse(await AsyncStorage.getItem("users"));
+      if (!users.length) {
+        setInitialRoute("Login");
+      } else {
+        setIsLoggedIn(true);
+        setUsers(users);
+        setInitialRoute("Home");
+      }
+    } catch (e) {
+      setInitialRoute("Login");
+    }
+  };
+  /* 
+  const getUsers = async () => {
+    let keys = [];
+    try {
+      keys = await AsyncStorage.getAllKeys();
+    } catch (e) {
+      // read key error
+    }
+    let currentUser;
+    console.log(keys);
+    const index = keys.indexOf("@logged_in_user");
+    if (index > -1) {
+      keys.splice(index, 1);
+    }
+    const index2 = keys.indexOf(currentUser);
+    console.log(index2);
+    if (index2 > -1) {
+      keys.splice(index2, 1);
+    }
+    let obj = [];
+    let profilePic;
+    await Promise.all(
+      keys.map(async (k, i) => {
+        try {
+          const jsonData = await AsyncStorage.getItem(k);
+          const data = JSON.parse(jsonData);
+          profilePic = data.profilePic;
+        } catch (e) {
+          console.log("failed loading profile picture");
+        }
+        console.log("prof pic: ", profilePic);
+        console.log("key " + i + ": " + k);
+        obj.push({ username: k, profilePic: profilePic });
+      })
+    );
+    obj.map((i) => {
+      console.log(i.username, i.profilePic);
+    });
+    // setUsers((state) => [...state, ...obj]);
+
+    //setUsers((state) => [obj2, ...state]);
+  }; */
+
+  useEffect(() => {
+    if (users !== null)
+      users.map((u) => {
+        console.log("users: ", u.username);
       });
+  }, [users]);
 
-    subscriptionStatus = stompClient
-      .watch("/user/notification/status")
-      .subscribe(function (message) {
-        const payload = JSON.parse(message.body);
-        setStatusMessage(payload.status);
-      });
-
-    subscriptionLog = stompClient
-      .watch("/user/notification/log")
-      .subscribe(function (message) {
-        const payload = JSON.parse(message.body);
-        setLogFromServer(payload.status);
-        /* 
-
-          let id = listDataLog.listLog.length;
-          const newList = listDataLog.listLog.concat({
-            id: id,
-            message: payload.log,
-          });
-
-          setListDataLog({ ...listDataLog, listLog: newList }); */
-      });
-    setIsConnected(true);
-  }, []);
-
-  // END StompClient //
+  // END debug //
 
   const loadApp = async () => {
     // const images = [require('./assets/snack-icon.png')];
@@ -192,59 +213,56 @@ export default function App() {
     /*  const cacheImages = images.map(image => {
       return Asset.fromModule(image).downloadAsync();
     });  */
-
-    return getLoggedInUser();
+    return getUsers();
   };
 
   if (!appLoaded) {
     return (
       <AppLoading
         startAsync={loadApp}
-        onFinish={() => setAppLoaded(true)}
+        onFinish={() => {
+          //  getAllUsersExceptCurrentUser();
+          setAppLoaded(true);
+        }}
         onError={() => {}}
       />
     );
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName={initialRoute}>
-        <Stack.Screen
-          name="Home"
-          options={{
-            headerLeft: null,
-            headerRight: (props) => (
-              <HeaderButton
-                username={loggedInUsername}
-                userProfilePic={userProfilePic}
-              />
-            ),
-          }}
-        >
-          {(props) => (
-            <Homepage2
-              {...props}
-              isLoggedIn={isLoggedIn}
-              loggedInUsername={loggedInUsername}
-              userProfilePic={userProfilePic}
-              token={token}
-              isConnected={isConnected}
-              stompClient={stompClient}
-              logFromServer={logFromServer}
-              statusMessage={statusMessage}
-            />
-          )}
-        </Stack.Screen>
-        <Stack.Screen name="Login">
-          {(props) => (
-            <LoginScreen
-              {...props}
-              isConnected={isConnected}
-              stompClient={stompClient}
-            />
-          )}
-        </Stack.Screen>
-      </Stack.Navigator>
-    </NavigationContainer>
+    <MenuProvider>
+      <StompContext.Provider value={[rxStomp, isConnected, setIsConnected]}>
+        <UsersContext.Provider value={[users, setUsers]}>
+          <DialogContext.Provider value={[visible, setVisible]}>
+            <NavigationContainer>
+              <Stack.Navigator initialRouteName={initialRoute}>
+                <Stack.Screen
+                  name="LikeTime"
+                  options={{
+                    headerLeft: null,
+                    headerRight: (props) => <HeaderButton />,
+                  }}
+                >
+                  {(props) => (
+                    <HomeScreen
+                      {...props}
+                      isLoggedIn={isLoggedIn}
+                      loggedInUsername={currentUser}
+                      userProfilePic={userProfilePic}
+                      token={token}
+                      storeNewUser={storeNewUser}
+                      storeUser={storeUser}
+                    />
+                  )}
+                </Stack.Screen>
+                <Stack.Screen name="Login">
+                  {(props) => <LoginScreen {...props} />}
+                </Stack.Screen>
+              </Stack.Navigator>
+            </NavigationContainer>
+          </DialogContext.Provider>
+        </UsersContext.Provider>
+      </StompContext.Provider>
+    </MenuProvider>
   );
 }
