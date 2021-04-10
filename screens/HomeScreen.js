@@ -45,8 +45,8 @@ const HomeScreen = ({ navigation }) => {
 
   const rxStompConfig = {
     //brokerURL: "wss://instanext-server.herokuapp.com/ws",
-    brokerURL: "ws://192.168.100.50:5000/ws", //home
-    //brokerURL: "ws://192.168.1.111:5000/ws", //office
+    //brokerURL: "ws://192.168.100.50:5000/ws", //home
+    brokerURL: "ws://192.168.0.50:5000/ws", //office
 
     connectHeaders: { sessionId: users[0].username, token: users[0].token },
     appendMissingNULLonIncoming: true,

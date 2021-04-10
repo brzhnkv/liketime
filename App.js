@@ -17,6 +17,8 @@ import { add, remove } from "./lib/ArrayOperators";
 import StompContext from "./contexts/StompContext";
 import DialogContext from "./contexts/DialogContext";
 import UsersContext from "./contexts/UsersContext";
+import { Provider } from "react-redux";
+import store from "./redux/store";
 
 const Stack = createStackNavigator();
 
@@ -230,39 +232,41 @@ export default function App() {
   }
 
   return (
-    <MenuProvider>
-      <StompContext.Provider value={[rxStomp, isConnected, setIsConnected]}>
-        <UsersContext.Provider value={[users, setUsers]}>
-          <DialogContext.Provider value={[visible, setVisible]}>
-            <NavigationContainer>
-              <Stack.Navigator initialRouteName={initialRoute}>
-                <Stack.Screen
-                  name="Home"
-                  options={{
-                    headerLeft: null,
-                    headerRight: (props) => <HeaderButton />,
-                  }}
-                >
-                  {(props) => (
-                    <HomeScreen
-                      {...props}
-                      isLoggedIn={isLoggedIn}
-                      loggedInUsername={currentUser}
-                      userProfilePic={userProfilePic}
-                      token={token}
-                      storeNewUser={storeNewUser}
-                      storeUser={storeUser}
-                    />
-                  )}
-                </Stack.Screen>
-                <Stack.Screen name="Login">
-                  {(props) => <LoginScreen {...props} />}
-                </Stack.Screen>
-              </Stack.Navigator>
-            </NavigationContainer>
-          </DialogContext.Provider>
-        </UsersContext.Provider>
-      </StompContext.Provider>
-    </MenuProvider>
+    <Provider store={store}>
+      <MenuProvider>
+        <StompContext.Provider value={[rxStomp, isConnected, setIsConnected]}>
+          <UsersContext.Provider value={[users, setUsers]}>
+            <DialogContext.Provider value={[visible, setVisible]}>
+              <NavigationContainer>
+                <Stack.Navigator initialRouteName={initialRoute}>
+                  <Stack.Screen
+                    name="Home"
+                    options={{
+                      headerLeft: null,
+                      headerRight: (props) => <HeaderButton />,
+                    }}
+                  >
+                    {(props) => (
+                      <HomeScreen
+                        {...props}
+                        isLoggedIn={isLoggedIn}
+                        loggedInUsername={currentUser}
+                        userProfilePic={userProfilePic}
+                        token={token}
+                        storeNewUser={storeNewUser}
+                        storeUser={storeUser}
+                      />
+                    )}
+                  </Stack.Screen>
+                  <Stack.Screen name="Login">
+                    {(props) => <LoginScreen {...props} />}
+                  </Stack.Screen>
+                </Stack.Navigator>
+              </NavigationContainer>
+            </DialogContext.Provider>
+          </UsersContext.Provider>
+        </StompContext.Provider>
+      </MenuProvider>
+    </Provider>
   );
 }
