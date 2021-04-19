@@ -1,26 +1,22 @@
 import React, { useState, useEffect, useContext } from "react";
-import { StyleSheet, Text, Image } from "react-native";
-import {
-  Menu,
-  MenuOptions,
-  MenuOption,
-  MenuTrigger,
-  renderers,
-} from "react-native-popup-menu";
+import { StyleSheet, Text, Image, View } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import { Button, Layout, MenuItem, OverflowMenu } from "@ui-kitten/components";
 
 import { colors } from "../styles/theme";
 import StompContext from "../contexts/StompContext";
 import DialogContext from "../contexts/DialogContext";
 import UsersContext from "../contexts/UsersContext";
-
-const { Popover } = renderers;
+import axios from "axios";
 
 const HeaderButton = () => {
   const [rxStomp] = useContext(StompContext);
   const [users, setUsers] = useContext(UsersContext);
   const [visible, setVisible] = useContext(DialogContext);
+
+  const [isLogoutActive, setIsLogoutActive] = useState(true);
 
   const handleAddAccount = () => {
     setVisible(true);
@@ -54,46 +50,151 @@ const HeaderButton = () => {
     await rxStomp.activate();
   };
 
+  const handleLogout = async () => {
+    const username = users[0].username;
+    setIsLogoutActive(false);
+    await rxStomp.deactivate();
+    axios.request({
+      method: "DELETE",
+      url: `http://localhost:5000/api/v1/user/api/v1/user/${username}`,
+    });
+
+    const usersArray = [...users];
+    usersArray.shift();
+
+    try {
+      await AsyncStorage.setItem("users", JSON.stringify(usersArray));
+    } catch (e) {}
+    try {
+      const usersStorage = JSON.parse(await AsyncStorage.getItem("users"));
+      setUsers(usersStorage);
+    } catch (e) {}
+    await rxStomp.activate();
+    setIsLogoutActive(true);
+  };
+
+  const [visibleMenu, setVisibleMenu] = React.useState(false);
+  const [selectedIndex, setSelectedIndex] = React.useState(null);
+
+  const onItemSelect = (index) => {
+    setSelectedIndex(index);
+    setVisibleMenu(false);
+  };
+
+  const renderToggleButton = () => (
+    <Button onPress={() => setVisibleMenu(true)}>TOGGLE MENU</Button>
+  );
+
   return (
-    <Menu renderer={Popover} rendererProps={{ preferredPlacement: "bottom" }}>
-      <MenuTrigger style={styles.menuTrigger}>
-        <Image
-          style={styles.logo}
-          source={{
-            uri: users[0].profilePic,
-          }}
-        />
-        <Text style={styles.text}>{users[0].username}</Text>
-      </MenuTrigger>
-      <MenuOptions style={styles.menuOptions}>
-        {users.slice(1).map((user, index) => {
+    users[0] && (
+      <OverflowMenu
+        anchor={renderToggleButton}
+        backdropStyle={styles.backdrop}
+        visible={visibleMenu}
+        selectedIndex={selectedIndex}
+        onSelect={onItemSelect}
+        onBackdropPress={() => setVisible(false)}
+      >
+        <MenuItem title="Users" />
+        <MenuItem title="Orders" />
+        <MenuItem title="Transactions" />
+      </OverflowMenu>
+      /*   <Menu
+        closeOnSelect={true}
+        onOpen={() => console.log("opened")}
+        onClose={() => console.log("closed")}
+        trigger={(triggerProps) => {
           return (
-            <MenuOption
-              key={index}
-              style={styles.menuOption}
-              value={user.username}
-              onSelect={(value) => handleChangeAccount(value)}
-            >
+            <View style={styles.menuTrigger}>
               <Image
                 style={styles.logo}
-                source={user.profilePic ? { uri: user.profilePic } : null}
+                source={{
+                  uri: users[0].profilePic,
+                }}
               />
-              <Text style={styles.text}>{user.username}</Text>
-            </MenuOption>
+              {triggerProps}
+              <Text style={styles.text}>{users[0].username}</Text>
+            </View>
           );
-        })}
-
-        <MenuOption disabled={true} />
-        <MenuOption
-          onSelect={() => handleAddAccount()}
-          text="Добавить аккаунт"
-        />
-      </MenuOptions>
-    </Menu>
+        }}
+      >
+        {users[1] && (
+          <Menu.Group title="Аккаунты">
+            {users.slice(1).map((user, index) => {
+              return (
+                <Menu.Item
+                  key={user.username}
+                  style={styles.menuOption}
+                  value={user.username}
+                  onPress={(value) => handleChangeAccount(value)}
+                >
+                  <Image
+                    style={styles.logo}
+                    source={user.profilePic ? { uri: user.profilePic } : null}
+                  />
+                  <Text style={styles.text}>{user.username}</Text>
+                </Menu.Item>
+              );
+            })}
+          </Menu.Group>
+        )}
+        <Divider />
+        <Menu.Group title="Действия">
+          <Menu.Item isDisabled>Menu item 3</Menu.Item>
+          <Menu.Item>Menu item 4</Menu.Item>
+        </Menu.Group>
+      </Menu> */
+    )
   );
 };
 
 export default HeaderButton;
+
+/* function MenuComponent() {
+  return (
+    
+    <Menu renderer={Popover} rendererProps={{ preferredPlacement: "bottom" }}>
+    <MenuTrigger style={styles.menuTrigger}>
+      <Image
+        style={styles.logo}
+        source={{
+          uri: users[0].profilePic,
+        }}
+      />
+      <Text style={styles.text}>{users[0].username}</Text>
+    </MenuTrigger>
+    <MenuOptions style={styles.menuOptions}>
+      {users.slice(1).map((user, index) => {
+        return (
+          <MenuOption
+            key={index}
+            style={styles.menuOption}
+            value={user.username}
+            onSelect={(value) => handleChangeAccount(value)}
+          >
+            <Image
+              style={styles.logo}
+              source={user.profilePic ? { uri: user.profilePic } : null}
+            />
+            <Text style={styles.text}>{user.username}</Text>
+          </MenuOption>
+        );
+      })}
+
+      <MenuOption disabled={true} />
+      <MenuOption
+        onSelect={() => handleAddAccount()}
+        text="Добавить аккаунт"
+      />
+      <MenuOption
+        disabled={!isLogoutActive}
+        onSelect={() => handleLogout()}
+        text="Выйти из системы"
+      />
+    </MenuOptions>
+  </Menu>
+  );
+} */
 
 const styles = StyleSheet.create({
   logo: {
@@ -123,5 +224,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: 50,
     marginRight: 5,
+  },
+
+  backdrop: {
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
 });

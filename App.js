@@ -1,30 +1,32 @@
-import React, { useState, useEffect } from "react";
+import * as eva from "@eva-design/eva";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
-import { StyleSheet } from "react-native";
-import Homepage2 from "./screens/Homepage2";
-import HomeScreen from "./screens/HomeScreen";
-import LoginScreen from "./screens/LoginScreen";
-import HeaderButton from "./components/HeaderButton";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ApplicationProvider, IconRegistry } from "@ui-kitten/components";
+import { EvaIconsPack } from "@ui-kitten/eva-icons";
 import AppLoading from "expo-app-loading";
-import { MenuProvider } from "react-native-popup-menu";
-
-import { throttleTime, map, scan } from "rxjs/operators";
-import * as encoding from "text-encoding";
-import { RxStomp, RxStompState } from "@stomp/rx-stomp";
-import { add, remove } from "./lib/ArrayOperators";
-import StompContext from "./contexts/StompContext";
+import { extendTheme, NativeBaseProvider } from "native-base";
+import React, { useState } from "react";
+import { Provider } from "react-redux";
+import { HomeScreenHeader } from "./components/header/HomeScreenHeader";
 import DialogContext from "./contexts/DialogContext";
 import UsersContext from "./contexts/UsersContext";
-import { Provider } from "react-redux";
 import store from "./redux/store";
+import HomeScreen from "./screens/HomeScreen";
+import LoginScreen from "./screens/LoginScreen";
 
 const Stack = createStackNavigator();
 
+const newColorTheme = {
+  brand: {
+    900: "#8287af",
+    800: "#7c83db",
+    700: "#b3bef6",
+  },
+};
+const theme = extendTheme({ colors: newColorTheme });
+
 export default function App() {
-  const [rxStomp, setRxStomp] = useState(new RxStomp());
-  const [isConnected, setIsConnected] = useState(false);
   const [appLoaded, setAppLoaded] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [initialRoute, setInitialRoute] = useState("");
@@ -139,10 +141,6 @@ export default function App() {
     //setUsers((state) => [obj2, ...state]);
   };
 
-  /* useEffect(() => {
-    setUsers([{ username: "uusd" }]);
-  }, []); */
-
   const getUsers = async () => {
     try {
       const users = JSON.parse(await AsyncStorage.getItem("users"));
@@ -157,57 +155,6 @@ export default function App() {
       setInitialRoute("Login");
     }
   };
-  /* 
-  const getUsers = async () => {
-    let keys = [];
-    try {
-      keys = await AsyncStorage.getAllKeys();
-    } catch (e) {
-      // read key error
-    }
-    let currentUser;
-    console.log(keys);
-    const index = keys.indexOf("@logged_in_user");
-    if (index > -1) {
-      keys.splice(index, 1);
-    }
-    const index2 = keys.indexOf(currentUser);
-    console.log(index2);
-    if (index2 > -1) {
-      keys.splice(index2, 1);
-    }
-    let obj = [];
-    let profilePic;
-    await Promise.all(
-      keys.map(async (k, i) => {
-        try {
-          const jsonData = await AsyncStorage.getItem(k);
-          const data = JSON.parse(jsonData);
-          profilePic = data.profilePic;
-        } catch (e) {
-          console.log("failed loading profile picture");
-        }
-        console.log("prof pic: ", profilePic);
-        console.log("key " + i + ": " + k);
-        obj.push({ username: k, profilePic: profilePic });
-      })
-    );
-    obj.map((i) => {
-      console.log(i.username, i.profilePic);
-    });
-    // setUsers((state) => [...state, ...obj]);
-
-    //setUsers((state) => [obj2, ...state]);
-  }; */
-
-  useEffect(() => {
-    if (users !== null)
-      users.map((u) => {
-        console.log("users: ", u.username);
-      });
-  }, [users]);
-
-  // END debug //
 
   const loadApp = async () => {
     // const images = [require('./assets/snack-icon.png')];
@@ -233,17 +180,19 @@ export default function App() {
 
   return (
     <Provider store={store}>
-      <MenuProvider>
-        <StompContext.Provider value={[rxStomp, isConnected, setIsConnected]}>
+      <IconRegistry icons={EvaIconsPack} />
+      <ApplicationProvider {...eva} theme={eva.light}>
+        <NativeBaseProvider theme={theme}>
           <UsersContext.Provider value={[users, setUsers]}>
             <DialogContext.Provider value={[visible, setVisible]}>
               <NavigationContainer>
                 <Stack.Navigator initialRouteName={initialRoute}>
                   <Stack.Screen
                     name="Home"
-                    options={{
-                      headerLeft: null,
-                      headerRight: (props) => <HeaderButton />,
+                    options={({ navigation }) => {
+                      return {
+                        header: () => <HomeScreenHeader />,
+                      };
                     }}
                   >
                     {(props) => (
@@ -265,8 +214,8 @@ export default function App() {
               </NavigationContainer>
             </DialogContext.Provider>
           </UsersContext.Provider>
-        </StompContext.Provider>
-      </MenuProvider>
+        </NativeBaseProvider>
+      </ApplicationProvider>
     </Provider>
   );
 }

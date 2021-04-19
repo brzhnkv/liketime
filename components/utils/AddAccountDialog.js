@@ -1,17 +1,14 @@
-import React, { useState, useContext, useEffect } from "react";
-import { Button, StyleSheet, View } from "react-native";
-import Dialog from "react-native-dialog";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { TextInput } from "react-native-gesture-handler";
-import StompContext from "../../contexts/StompContext";
+import axios from "axios";
+import React, { useContext, useState } from "react";
+import { StyleSheet } from "react-native";
+import Dialog from "react-native-dialog";
 import UsersContext from "../../contexts/UsersContext";
 
 export default function AddAccountDialog({ visible, setVisible }) {
-  const [rxStomp] = useContext(StompContext);
   const [users, setUsers] = useContext(UsersContext);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [loginButtonPressed, setLoginButtonPressed] = useState(false);
 
   const storeAdditionalUser = async (user) => {
     const usersArray = [...users];
@@ -31,31 +28,6 @@ export default function AddAccountDialog({ visible, setVisible }) {
     }
   };
 
-  let subscriptionAddAccount;
-
-  useEffect(() => {
-    if (loginButtonPressed) {
-      subscriptionAddAccount = rxStomp
-        .watch("/user/" + users[0].username + "/queue/login/addaccount")
-        .subscribe(function (message) {
-          const payload = JSON.parse(message.body);
-          console.log(payload);
-          if (payload.data.token !== null) {
-            const username = payload.data.username;
-            const token = payload.data.token;
-            const profilePic = payload.data.userProfilePic;
-
-            const user = { username, profilePic, token };
-            storeAdditionalUser(user);
-
-            ///  setStatusMessage("token received");
-            //subscriptionLogin.unsubscribe();
-          }
-        });
-      login(username, password);
-    }
-  }, [loginButtonPressed]);
-
   const showDialog = () => {
     setVisible(true);
   };
@@ -65,16 +37,28 @@ export default function AddAccountDialog({ visible, setVisible }) {
   };
 
   const handleLogin = () => {
-    setLoginButtonPressed(true);
-  };
+    axios
+      .post("http://localhost:5000/api/v1/user/", {
+        username: username,
+        password: password,
+      })
+      .then(function (response) {
+        console.log(response);
+        const { data } = response;
 
-  const login = async (username, password) => {
-    const data = { username: username, password: password };
+        const user = {
+          username: data.username,
+          profilePic: data.userProfilePic,
+          token: data.token,
+        };
 
-    rxStomp.publish({
-      destination: "/app/auth/addaccount",
-      body: JSON.stringify(data),
-    });
+        storeAdditionalUser(user);
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
+
+    setVisible(false);
   };
 
   return (
