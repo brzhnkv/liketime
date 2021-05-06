@@ -1,30 +1,38 @@
 import React, { useContext, useState } from "react";
 import { Button, StyleSheet, View } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
+import { useDispatch, useSelector } from "react-redux";
 import StompContext from "../contexts/StompContext";
 import UsersContext from "../contexts/UsersContext";
+import { clearMessages } from "../redux/messagesSlice";
 
 const Task = ({ taskName, destination, buttonName }) => {
   const [rxStomp] = useContext(StompContext);
   const [users] = useContext(UsersContext);
 
-  const [isRunning, setIsRunning] = useState(false);
   const [tag, setTag] = useState("");
 
-  const handleRunTask = async () => {
-    if (tag !== "") {
-      setIsRunning(true);
-      const data = {
-        username: users[0].username,
-        token: users[0].token,
-        tag: tag,
-      };
+  const dispatch = useDispatch();
+  const { status } = useSelector((state) => state.status);
 
-      rxStomp.publish({
-        destination: destination,
-        body: JSON.stringify(data),
-      });
-    } else alert("Тег не может быть пустым!");
+  const handleRunTask = async () => {
+    if (tag === "") alert("Тег не может быть пустым!");
+    let editedTag = tag;
+    editedTag = editedTag.replace("#", "");
+
+    dispatch(clearMessages());
+    await rxStomp.activate();
+
+    const data = {
+      username: users[0].username,
+      token: users[0].token,
+      tag: editedTag,
+    };
+
+    await rxStomp.publish({
+      destination: destination,
+      body: JSON.stringify(data),
+    });
   };
 
   return (
@@ -40,7 +48,7 @@ const Task = ({ taskName, destination, buttonName }) => {
       />
       <Button
         title={!buttonName ? "Старт" : buttonName}
-        disabled={isRunning}
+        disabled={status}
         onPress={handleRunTask}
       />
     </View>

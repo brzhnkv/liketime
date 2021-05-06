@@ -1,32 +1,31 @@
 import { Button } from "native-base";
-import React, { useContext, useState } from "react";
+import React, { useContext } from "react";
 import { StyleSheet, View } from "react-native";
+import { useDispatch, useSelector } from "react-redux";
 import { Console } from "../../components/console/Console";
+import { ConsoleHeader } from "../../components/console/ConsoleHeader";
 import StompContext from "../../contexts/StompContext";
 import UsersContext from "../../contexts/UsersContext";
-import { ConsoleHeader } from "./../../components/console/ConsoleHeader";
+import { clearMessages } from "../../redux/messagesSlice";
 
-const ExtraScreen = () => {
+const AdminScreen = () => {
   const [rxStomp] = useContext(StompContext);
   const [users] = useContext(UsersContext);
-  const [isRunning, setIsRunning] = useState(false);
 
-  const handleTest = () => {
-    const subscriptionRunning = rxStomp
-      .watch("/user/" + users[0].username + "/queue/running")
-      .subscribe(function (message) {
-        const payload = JSON.parse(message.body);
-        const running = payload.status === "true";
-        setIsRunning(running);
-        if (!running) subscriptionRunning.unsubscribe();
-      });
+  const { status } = useSelector((state) => state.status);
 
+  const dispatch = useDispatch();
+
+  const handleTest = async () => {
+    dispatch(clearMessages());
+    await rxStomp.activate();
+    setIsRunning(true);
     const data = {
       username: users[0].username,
       token: users[0].token,
     };
 
-    rxStomp.publish({
+    await rxStomp.publish({
       destination: "/app/test",
       body: JSON.stringify(data),
     });
@@ -49,8 +48,8 @@ const ExtraScreen = () => {
     <View style={styles.root}>
       <Button
         colorScheme="emerald"
-        isLoading={isRunning}
-        isLoadingText="processing"
+        isLoading={status}
+        isLoadingText="в работе"
         onPress={handleTest}
         variant="outline"
         size={"sm"}
@@ -90,4 +89,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ExtraScreen;
+export default AdminScreen;

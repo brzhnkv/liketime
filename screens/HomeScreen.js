@@ -1,7 +1,8 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { RxStomp, RxStompState } from "@stomp/rx-stomp";
 import React, { useContext, useEffect, useState } from "react";
 import { StatusBar, StyleSheet, Text, View } from "react-native";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import AddAccountDialog from "../components/utils/AddAccountDialog";
 import DialogContext from "../contexts/DialogContext";
 import StompContext from "../contexts/StompContext";
@@ -11,10 +12,11 @@ import {
   receiveLogMessage,
   receiveStatusMessage,
 } from "../redux/messagesSlice";
-import ExtraScreen from "./TaskScreens/ExtraScreen";
+import { getStatus } from "../redux/statusSlice";
+import { StompConfig, Subscription } from "./../lib/stomp/Stomp";
+import AdminScreen from "./TaskScreens/AdminScreen";
 import FollowScreen from "./TaskScreens/FollowScreen";
 import LikeScreen from "./TaskScreens/LikeScreen";
-import { RxStomp, RxStompState } from "@stomp/rx-stomp";
 
 const colors = {
   themeColor: "#E8CEBF",
@@ -29,24 +31,19 @@ const Tab = createBottomTabNavigator();
 const HomeScreen = ({ navigation }) => {
   const [rxStomp, setRxStomp] = useState(new RxStomp());
   const [isConnected, setIsConnected] = useState(false);
-  //const [rxStomp, isConnected, setIsConnected] = useContext(StompContext);
   const [users, setUsers] = useContext(UsersContext);
   const [visible, setVisible] = useContext(DialogContext);
 
-  const rxStompConfig = {
-    //brokerURL: "wss://instanext-server.herokuapp.com/ws", //production
-    //brokerURL: "ws://192.168.100.50:5000/ws", //home
-    brokerURL: "ws://192.168.0.50:5000/ws", //office
-    connectHeaders: { sessionId: users[0].username, token: users[0].token },
-    appendMissingNULLonIncoming: true,
-    forceBinaryWSFrames: true,
-    debug: function (str) {
-      console.log("STOMP: " + str);
-    },
-    reconnectDelay: 20000,
-    connectionTimeout: 1000,
-  };
-  rxStomp.configure(rxStompConfig);
+  const username = users[0].username;
+  const token = users[0].token;
+
+  const { status } = useSelector((state) => state.status);
+
+  useEffect(() => {
+    status === true ? rxStomp.activate() : rxStomp.deactivate();
+  }, [status]);
+
+  rxStomp.configure(StompConfig(username, token));
 
   const [state, setState] = useState();
   useEffect(() => {
@@ -60,35 +57,30 @@ const HomeScreen = ({ navigation }) => {
   let subscriptionLog;
 
   const dispatch = useDispatch();
+  const dispatchStatus = (newStatusMessage) => {
+    dispatch(receiveStatusMessage(newStatusMessage));
+    dispatch(getStatus({ username: users[0].username }));
+  };
+  const dispatchLog = (newLogMessage) =>
+    dispatch(receiveLogMessage(newLogMessage));
 
   useEffect(() => {
-    rxStomp.activate();
+    dispatch(getMessages({ username: users[0].username }));
+    dispatch(getStatus({ username: users[0].username }));
 
-    subscriptionStatus = rxStomp
-      .watch("/user/" + users[0].username + "/queue/status")
-      .subscribe(function (message) {
-        const payload = JSON.parse(message.body);
-        const newStatusMessage = payload.status;
-        dispatch(receiveStatusMessage(newStatusMessage));
-      });
-
-    subscriptionLog = rxStomp
-      .watch("/user/" + users[0].username + "/queue/log")
-      .subscribe(function (message) {
-        const payload = JSON.parse(message.body);
-        const newLogMessage = payload.status;
-        dispatch(receiveLogMessage(newLogMessage));
-      });
+    subscriptionStatus = Subscription(
+      rxStomp,
+      username,
+      "status",
+      dispatchStatus
+    );
+    subscriptionLog = Subscription(rxStomp, username, "log", dispatchLog);
 
     return () => {
       subscriptionStatus.unsubscribe();
       subscriptionLog.unsubscribe();
     };
   }, [users]);
-
-  useEffect(() => {
-    dispatch(getMessages({ username: users[0].username }));
-  }, [dispatch]);
 
   return (
     <StompContext.Provider value={[rxStomp, isConnected, setIsConnected]}>
@@ -99,7 +91,7 @@ const HomeScreen = ({ navigation }) => {
           setVisible={setVisible}
           style={styles.dialog}
         />
-        {!isConnected ? (
+        {false ? (
           <Text>Соединение с сервером не установлено...</Text>
         ) : (
           <Tab.Navigator>
@@ -117,8 +109,8 @@ const HomeScreen = ({ navigation }) => {
               {(props) => <FollowScreen {...props} />}
             </Tab.Screen>
             {
-              <Tab.Screen name="Extra">
-                {(props) => <ExtraScreen {...props} />}
+              <Tab.Screen name="Admin">
+                {(props) => <AdminScreen {...props} />}
               </Tab.Screen>
             }
           </Tab.Navigator>

@@ -1,5 +1,4 @@
-import React, { useContext, useState, useEffect } from "react";
-import { StyleSheet, View } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Avatar,
   Icon,
@@ -9,11 +8,11 @@ import {
   TopNavigation,
   TopNavigationAction,
 } from "@ui-kitten/components";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import StompContext from "../../contexts/StompContext";
-import UsersContext from "../../contexts/UsersContext";
-import DialogContext from "../../contexts/DialogContext";
 import axios from "axios";
+import React, { useContext, useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import DialogContext from "../../contexts/DialogContext";
+import UsersContext from "../../contexts/UsersContext";
 
 const UserIcon = (props) => <Icon {...props} name="person-add" />;
 const LogoutIcon = (props) => <Icon {...props} name="log-out" />;
@@ -84,7 +83,7 @@ export const HomeScreenHeader = () => {
     <TopNavigationAction
       icon={() => (
         <View style={styles.menuActionWrapper}>
-          <Avatar
+          <img // here wast Avatar to show image
             //defaultSource={{ uri: "/assets/icon.png" }}
             source={{ uri: users[0].profilePic }}
           />

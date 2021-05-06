@@ -34,6 +34,12 @@ export const messages = createSlice({
         logMessages: state.logMessages.push(action.payload),
       });
     },
+    clearMessages() {
+      return {
+        statusMessages: [],
+        logMessages: [],
+      };
+    },
   },
 });
 
@@ -43,6 +49,7 @@ export const {
   setMessages,
   receiveStatusMessage,
   receiveLogMessage,
+  clearMessages,
 } = messages.actions;
 
 export default messages.reducer;

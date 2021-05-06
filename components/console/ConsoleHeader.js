@@ -6,7 +6,7 @@ export const ConsoleHeader = ({ statusMessage }) => {
   const { lastStatusMessage } = useSelector((state) => state.messages);
   return (
     <View style={styles.root}>
-      <Text style={styles.title}>Статус: {lastStatusMessage}</Text>
+      <Text style={styles.title}>{lastStatusMessage}</Text>
     </View>
   );
 };
