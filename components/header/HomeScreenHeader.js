@@ -11,6 +11,7 @@ import {
 import axios from "axios";
 import React, { useContext, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { Image } from "react-native-svg";
 import DialogContext from "../../contexts/DialogContext";
 import UsersContext from "../../contexts/UsersContext";
 
@@ -49,14 +50,16 @@ export const HomeScreenHeader = () => {
     //await rxStomp.activate();
   };
 
+  const office = `http://localhost:5000/api/v1/user/${users[0].username}`;
+  const production = `https://liketimeserver.xyz/api/v1/user/${users[0].username}`;
+
   const handleLogout = async () => {
     toggleMenu();
-    const username = users[0].username;
     setIsLogoutActive(false);
     // await rxStomp.deactivate();
     axios.request({
       method: "DELETE",
-      url: `http://localhost:5000/api/v1/user/${username}`,
+      url: production,
     });
 
     const usersArray = [...users];
@@ -83,9 +86,12 @@ export const HomeScreenHeader = () => {
     <TopNavigationAction
       icon={() => (
         <View style={styles.menuActionWrapper}>
-          <img // here wast Avatar to show image
+          <Image // here wast Avatar to show image
             //defaultSource={{ uri: "/assets/icon.png" }}
             source={{ uri: users[0].profilePic }}
+            alt=""
+            height={50}
+            width={50}
           />
           <Text //style={styles.text}
           >

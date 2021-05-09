@@ -9,9 +9,12 @@ const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
+  const office = "http://localhost:5000/api/v1/user/";
+  const production = "https://liketimeserver.xyz/api/v1/user/";
+
   const handleLogin = () => {
     axios
-      .post("http://localhost:5000/api/v1/user/", {
+      .post(production, {
         username: username,
         password: password,
       })
