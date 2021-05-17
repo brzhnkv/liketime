@@ -8,15 +8,20 @@ import DialogContext from "../contexts/DialogContext";
 import StompContext from "../contexts/StompContext";
 import UsersContext from "../contexts/UsersContext";
 import {
+  clearMessages,
   getMessages,
   receiveLogMessage,
   receiveStatusMessage,
+  setMessages,
 } from "../redux/messagesSlice";
-import { getStatus } from "../redux/statusSlice";
 import { StompConfig, Subscription } from "./../lib/stomp/Stomp";
 import AdminScreen from "./TaskScreens/AdminScreen";
 import FollowScreen from "./TaskScreens/FollowScreen";
 import LikeScreen from "./TaskScreens/LikeScreen";
+import { db } from "../firebase/firebaseConfig";
+import { doc, getDoc, onSnapshot } from "firebase/firestore";
+import * as encoding from "text-encoding";
+Object.assign(global, { WebSocket: require("websocket").w3cwebsocket });
 
 const colors = {
   themeColor: "#E8CEBF",
@@ -37,11 +42,15 @@ const HomeScreen = ({ navigation }) => {
   const username = users[0].username;
   const token = users[0].token;
 
-  const { status } = useSelector((state) => state.status);
+  const { status } = useSelector((state) => state.messages);
 
-  useEffect(() => {
-    status === true ? rxStomp.activate() : rxStomp.deactivate();
-  }, [status]);
+  /*   useEffect(() => {
+    console.log(JSON.stringify(status));
+    const func = async () => {
+      status === true ? rxStomp.activate() : rxStomp.deactivate();
+    };
+    func();
+  }, [status]); */
 
   rxStomp.configure(StompConfig(username, token));
 
@@ -53,20 +62,35 @@ const HomeScreen = ({ navigation }) => {
     return () => subscription.unsubscribe();
   });
 
+  useEffect(() => {
+    rxStomp.activate();
+    const unsub = onSnapshot(doc(db, "messages", users[0].username), (doc) => {
+      if (doc.exists()) {
+        const response = doc.data();
+        console.log("Document data:", response);
+        dispatch(setMessages({ ...response }));
+      } else {
+        // doc.data() will be undefined in this case
+        console.log("No such document!");
+      }
+    });
+    return () => unsub();
+  }, [users, setUsers]);
+
   let subscriptionStatus;
   let subscriptionLog;
 
   const dispatch = useDispatch();
   const dispatchStatus = (newStatusMessage) => {
     dispatch(receiveStatusMessage(newStatusMessage));
-    dispatch(getStatus({ username: users[0].username }));
+    dispatch(getMessages({ username: users[0].username }));
   };
   const dispatchLog = (newLogMessage) =>
     dispatch(receiveLogMessage(newLogMessage));
 
   useEffect(() => {
+    dispatch(clearMessages());
     dispatch(getMessages({ username: users[0].username }));
-    dispatch(getStatus({ username: users[0].username }));
 
     subscriptionStatus = Subscription(
       rxStomp,
@@ -80,7 +104,7 @@ const HomeScreen = ({ navigation }) => {
       subscriptionStatus.unsubscribe();
       subscriptionLog.unsubscribe();
     };
-  }, [users]);
+  }, [users, setUsers]);
 
   return (
     <StompContext.Provider value={[rxStomp, isConnected, setIsConnected]}>

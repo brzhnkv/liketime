@@ -12,6 +12,7 @@ npm-debug.*
 .DS_Store
 
 .yarn/*
+.firebase/*
 !.yarn/patches
 !.yarn/releases
 !.yarn/plugins

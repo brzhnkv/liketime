@@ -10,7 +10,7 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState("");
 
   const office = "http://localhost:5000/api/v1/user/";
-  const production = "https://liketimeserver.xyz/api/v1/user/";
+  const production = "https://instanext-server.herokuapp.com/api/v1/user/";
 
   const handleLogin = () => {
     axios
@@ -21,6 +21,8 @@ const LoginScreen = ({ navigation }) => {
       .then(function (response) {
         console.log(response);
         const { data } = response;
+
+        if (data.error === "true") alert(data.errorMessage);
 
         const user = {
           username: data.username,

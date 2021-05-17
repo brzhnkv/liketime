@@ -3,6 +3,7 @@ import { createSlice } from "@reduxjs/toolkit";
 export const messages = createSlice({
   name: "messages",
   initialState: {
+    status: false,
     statusMessages: [],
     logMessages: [],
     lastStatusMessage: "",
@@ -10,12 +11,13 @@ export const messages = createSlice({
   reducers: {
     getMessages() {},
     setMessages(state, action) {
-      const { statusMessages, logMessages } = action.payload;
+      const { status, statusMessages, logMessages } = action.payload;
       return {
         ...state,
         statusMessages,
         logMessages,
         lastStatusMessage: statusMessages[statusMessages.length - 1],
+        status: status,
       };
     },
 

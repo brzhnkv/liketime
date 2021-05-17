@@ -5,7 +5,6 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { ApplicationProvider, IconRegistry } from "@ui-kitten/components";
 import { EvaIconsPack } from "@ui-kitten/eva-icons";
 import AppLoading from "expo-app-loading";
-import { extendTheme, NativeBaseProvider } from "native-base";
 import React, { useState } from "react";
 import { Provider } from "react-redux";
 import { HomeScreenHeader } from "./components/header/HomeScreenHeader";
@@ -14,6 +13,7 @@ import UsersContext from "./contexts/UsersContext";
 import store from "./redux/store";
 import HomeScreen from "./screens/HomeScreen";
 import LoginScreen from "./screens/LoginScreen";
+import * as encoding from "text-encoding";
 
 const Stack = createStackNavigator();
 
@@ -24,7 +24,6 @@ const newColorTheme = {
     700: "#b3bef6",
   },
 };
-const theme = extendTheme({ colors: newColorTheme });
 
 export default function App() {
   const [appLoaded, setAppLoaded] = useState(false);
@@ -182,39 +181,37 @@ export default function App() {
     <Provider store={store}>
       <IconRegistry icons={EvaIconsPack} />
       <ApplicationProvider {...eva} theme={eva.light}>
-        <NativeBaseProvider theme={theme}>
-          <UsersContext.Provider value={[users, setUsers]}>
-            <DialogContext.Provider value={[visible, setVisible]}>
-              <NavigationContainer>
-                <Stack.Navigator initialRouteName={initialRoute}>
-                  <Stack.Screen
-                    name="Home"
-                    options={({ navigation }) => {
-                      return {
-                        header: () => <HomeScreenHeader />,
-                      };
-                    }}
-                  >
-                    {(props) => (
-                      <HomeScreen
-                        {...props}
-                        isLoggedIn={isLoggedIn}
-                        loggedInUsername={currentUser}
-                        userProfilePic={userProfilePic}
-                        token={token}
-                        storeNewUser={storeNewUser}
-                        storeUser={storeUser}
-                      />
-                    )}
-                  </Stack.Screen>
-                  <Stack.Screen name="Login">
-                    {(props) => <LoginScreen {...props} />}
-                  </Stack.Screen>
-                </Stack.Navigator>
-              </NavigationContainer>
-            </DialogContext.Provider>
-          </UsersContext.Provider>
-        </NativeBaseProvider>
+        <UsersContext.Provider value={[users, setUsers]}>
+          <DialogContext.Provider value={[visible, setVisible]}>
+            <NavigationContainer>
+              <Stack.Navigator initialRouteName={initialRoute}>
+                <Stack.Screen
+                  name="Home"
+                  options={({ navigation }) => {
+                    return {
+                      header: () => <HomeScreenHeader />,
+                    };
+                  }}
+                >
+                  {(props) => (
+                    <HomeScreen
+                      {...props}
+                      isLoggedIn={isLoggedIn}
+                      loggedInUsername={currentUser}
+                      userProfilePic={userProfilePic}
+                      token={token}
+                      storeNewUser={storeNewUser}
+                      storeUser={storeUser}
+                    />
+                  )}
+                </Stack.Screen>
+                <Stack.Screen name="Login">
+                  {(props) => <LoginScreen {...props} />}
+                </Stack.Screen>
+              </Stack.Navigator>
+            </NavigationContainer>
+          </DialogContext.Provider>
+        </UsersContext.Provider>
       </ApplicationProvider>
     </Provider>
   );

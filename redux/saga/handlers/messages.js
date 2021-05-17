@@ -7,8 +7,7 @@ export function* handleGetMessages(action) {
     const { payload } = action;
     const { username } = payload;
     const response = yield call(requestGetMessages, username);
-    const { data } = response;
-    yield put(setMessages({ ...data }));
+    // yield put(setMessages({ ...response }));
   } catch (error) {
     console.log(error);
   }

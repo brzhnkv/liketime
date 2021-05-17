@@ -2,7 +2,7 @@
   "expo": {
     "name": "LikeTime",
     "slug": "liketime",
-    "version": "40.0.0",
+    "version": "41.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
@@ -13,15 +13,15 @@
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
+      "icon": "./assets/ios_icon.png",
       "supportsTablet": true
     },
     "android": {
+      "icon": "./assets/android_icon.png",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/android_icon.png",
         "backgroundColor": "#FFFFFF"
       },
       "package": "com.brzhnkv.liketime"

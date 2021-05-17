@@ -38,7 +38,7 @@ export default function AddAccountDialog({ visible, setVisible }) {
 
   const handleLogin = () => {
     axios
-      .post("http://localhost:5000/api/v1/user/", {
+      .post("https://instanext-server.herokuapp.com/api/v1/user/", {
         username: username,
         password: password,
       })

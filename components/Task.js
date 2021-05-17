@@ -13,20 +13,21 @@ const Task = ({ taskName, destination, buttonName }) => {
   const [tag, setTag] = useState("");
 
   const dispatch = useDispatch();
-  const { status } = useSelector((state) => state.status);
+  const { status } = useSelector((state) => state.messages);
 
   const handleRunTask = async () => {
     if (tag === "") alert("Тег не может быть пустым!");
     let editedTag = tag;
     editedTag = editedTag.replace("#", "");
+    editedTag = editedTag.replace(/\s/g, "");
 
     dispatch(clearMessages());
-    await rxStomp.activate();
+    // rxStomp.activate();
 
     const data = {
       username: users[0].username,
       token: users[0].token,
-      tag: editedTag,
+      tag: tag,
     };
 
     await rxStomp.publish({
